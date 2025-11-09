@@ -7,6 +7,7 @@ import { Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AddMedicationScreen() {
   const [name, setName] = useState('');
@@ -29,26 +30,34 @@ export default function AddMedicationScreen() {
     Haptics.selectionAsync();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name || !dosage || !time || selectedDays.size === 0) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
-    // Add the new medication to the global state
     const medication = {
       id: Date.now().toString(),
       name,
       dosage,
       time,
-      days: Array.from(selectedDays)
+      days: Array.from(selectedDays),
     };
 
-    // Pass the medication back to the schedule screen
-    router.push({
-      pathname: '/(tabs)',
-      params: { newMedication: JSON.stringify(medication) }
-    });
+    try {
+      // Read existing medications
+      const existing = await AsyncStorage.getItem('medications');
+      const meds = existing ? JSON.parse(existing) as Array<any> : [];
+      meds.push(medication);
+      await AsyncStorage.setItem('medications', JSON.stringify(meds));
+
+      // success feedback and navigate back to schedule
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.replace('/(tabs)/schedule'); // Navigate directly to the schedule page
+    } catch (error) {
+      console.error('Failed to save medication', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
   };
 
   const allDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -69,13 +78,17 @@ export default function AddMedicationScreen() {
 
         <View style={styles.inputContainer}>
           <ThemedText style={styles.label}>Dosage</ThemedText>
-          <TextInput
-            style={[styles.input, { backgroundColor: inputBackground }]}
-            value={dosage}
-            onChangeText={setDosage}
-            placeholder="Enter dosage (e.g., 50mg)"
-            placeholderTextColor={placeholderColor}
-          />
+          <View style={styles.dosageRow}>
+            <TextInput
+              style={[styles.input, styles.dosageInput, { backgroundColor: inputBackground }]}
+              value={dosage}
+              onChangeText={setDosage}
+              placeholder="Enter dosage (mg)"
+              placeholderTextColor={placeholderColor}
+              keyboardType="numeric"
+            />
+            <ThemedText style={styles.dosageUnit}>mg</ThemedText>
+          </View>
         </View>
 
         <View style={styles.inputContainer}>
@@ -140,6 +153,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 16,
+  },
+  dosageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dosageInput: {
+    flex: 1,
+    marginRight: 8,
+  },
+  dosageUnit: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
   },
   daysContainer: {
     flexDirection: 'row',
