@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import BleController from '@/components/ble-controller';
 import { DayOfWeek } from '@/components/dayOfWeek';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
@@ -48,6 +49,9 @@ export default function HomeScreen() {
         <DayOfWeek day="Friday" />
         <DayOfWeek day="Saturday" />
         <DayOfWeek day="Sunday" />
+
+  {/* BLE controller for ESP32-leds */}
+  <BleController />
 
       </ThemedView>
 
